@@ -33,6 +33,7 @@
 #include <sys/sem.h>
 #include <sys/errno.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <inttypes.h>
 #include <fcntl.h>
 #include <math.h>
@@ -1468,6 +1469,7 @@ flowoplib_openfile_common(threadflow_t *threadflow, flowop_t *flowop, int fd)
 	char *fileset_name;
 	int tid = 0;
 	int openflag = 0;
+	int numa = 0;
 	int err;
 
 	if (flowop->fo_fileset == NULL) {
@@ -1586,6 +1588,7 @@ flowoplib_openfile_common(threadflow_t *threadflow, flowop_t *flowop, int fd)
 		return (FILEBENCH_ERROR);
 	}
 
+	ioctl(threadflow->tf_fd[fd].fd_num, 0xBCD00111, &numa);
 	filebench_log(LOG_DEBUG_SCRIPT,
 	    "flowop %s: opened %s fd[%d] = %d",
 	    flowop->fo_name, file->fse_path, fd, threadflow->tf_fd[fd]);
@@ -1612,6 +1615,7 @@ flowoplib_createfile(threadflow_t *threadflow, flowop_t *flowop)
 	int openflag = O_CREAT;
 	int fd;
 	int err;
+	int numa = 0;
 
 	fd = flowoplib_fdnum(threadflow, flowop);
 
@@ -1664,6 +1668,7 @@ flowoplib_createfile(threadflow_t *threadflow, flowop_t *flowop)
 		return (FILEBENCH_ERROR);
 	}
 
+	ioctl(threadflow->tf_fd[fd].fd_num, 0xBCD00111, &numa);
 	filebench_log(LOG_DEBUG_SCRIPT,
 	    "flowop %s: created %s fd[%d] = %d",
 	    flowop->fo_name, file->fse_path, fd, threadflow->tf_fd[fd]);
