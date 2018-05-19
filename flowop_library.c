@@ -1450,6 +1450,41 @@ flowoplib_openfile(threadflow_t *threadflow, flowop_t *flowop)
 	return (flowoplib_openfile_common(threadflow, flowop, fd));
 }
 
+#define	NOVA_GET_NUMAID	0xBCD00019
+
+static int flowoplib_setnuma_affinity(threadflow_t *threadflow, int fd)
+{
+	cpu_set_t cpuset;
+	int i;
+	int numa;
+	int ret;
+
+	ret = ioctl(threadflow->tf_fd[fd].fd_num, NOVA_GET_NUMAID, &numa);
+	if (ret < 0)
+		return FILEBENCH_OK;
+
+	if (threadflow->numa_id == numa)
+		return FILEBENCH_OK;
+
+	filebench_log(LOG_INFO, "Bind thread %d to NUMA %d",
+			threadflow->tf_tid, numa);
+
+	/* FIXME: Hardcoded */
+	for (i = 0; i < 20; i++)
+		CPU_SET(i, &cpuset);
+
+	ret = pthread_setaffinity_np(threadflow->tf_tid,
+			sizeof(cpu_set_t), &cpuset);
+	if (ret != 0) {
+		filebench_log(LOG_ERROR, "thread setaffinity failed: %s",
+			strerror(ret));
+		return FILEBENCH_ERROR;
+	}
+
+	threadflow->numa_id = numa;
+	return FILEBENCH_OK;
+}
+
 /*
  * Common file opening code for filesets. Uses the supplied
  * file descriptor index to determine the tf_fd entry to use.
@@ -1469,7 +1504,6 @@ flowoplib_openfile_common(threadflow_t *threadflow, flowop_t *flowop, int fd)
 	char *fileset_name;
 	int tid = 0;
 	int openflag = 0;
-	int numa = 0;
 	int err;
 
 	if (flowop->fo_fileset == NULL) {
@@ -1588,7 +1622,7 @@ flowoplib_openfile_common(threadflow_t *threadflow, flowop_t *flowop, int fd)
 		return (FILEBENCH_ERROR);
 	}
 
-	ioctl(threadflow->tf_fd[fd].fd_num, 0xBCD00111, &numa);
+	flowoplib_setnuma_affinity(threadflow, fd);
 	filebench_log(LOG_DEBUG_SCRIPT,
 	    "flowop %s: opened %s fd[%d] = %d",
 	    flowop->fo_name, file->fse_path, fd, threadflow->tf_fd[fd]);
@@ -1615,7 +1649,6 @@ flowoplib_createfile(threadflow_t *threadflow, flowop_t *flowop)
 	int openflag = O_CREAT;
 	int fd;
 	int err;
-	int numa = 0;
 
 	fd = flowoplib_fdnum(threadflow, flowop);
 
@@ -1668,7 +1701,7 @@ flowoplib_createfile(threadflow_t *threadflow, flowop_t *flowop)
 		return (FILEBENCH_ERROR);
 	}
 
-	ioctl(threadflow->tf_fd[fd].fd_num, 0xBCD00111, &numa);
+	flowoplib_setnuma_affinity(threadflow, fd);
 	filebench_log(LOG_DEBUG_SCRIPT,
 	    "flowop %s: created %s fd[%d] = %d",
 	    flowop->fo_name, file->fse_path, fd, threadflow->tf_fd[fd]);
