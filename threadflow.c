@@ -82,6 +82,7 @@ threadflow_createthread(threadflow_t *threadflow)
 		return (FILEBENCH_ERROR);
 	}
 
+	threadflow->numa_id = -1;
 	return (FILEBENCH_OK);
 }
 
