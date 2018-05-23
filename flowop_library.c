@@ -1469,6 +1469,8 @@ static int flowoplib_setnuma_affinity(threadflow_t *threadflow, int fd)
 	filebench_log(LOG_INFO, "Bind thread %d to NUMA %d",
 			threadflow->tf_tid, numa);
 
+	CPU_ZERO(&cpuset);
+
 	/* FIXME: Hardcoded */
 	for (i = 0; i < 20; i++)
 		CPU_SET(i, &cpuset);
